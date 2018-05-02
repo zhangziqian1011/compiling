@@ -19,6 +19,34 @@ void getToken(char *key) //处理输入
     yylval=p;
 }
 
+int isOct()
+{
+	int i;
+	for (i = 0; i < yyleng; i++) 
+	{
+		if (yytext[i] == '8' || yytext[i] == '9')
+		{
+			printf("Error type A at Line %d: Illegal octal number \'%s\'\n", yylineno, yytext);
+			isError = 1;
+			return 0;
+		}
+	}
+	return 1;
+}
+int isHex()
+{
+	int i;
+	for (i = 2; i < yyleng; i++)
+	{
+		if ((yytext[i]>'f' && yytext[i]<='z') || (yytext[i]>'F' && yytext[i]<='Z')) {
+			printf("Error type A at Line %d: Illegal hexadecimal number \'%s\'\n", yylineno, yytext);
+			isError = 1;
+			return 0;
+		}
+	}
+	return 1;
+}
+
 
 
 %}
@@ -29,7 +57,7 @@ octNum 0{digit}+
 hexNum 0[xX][0-9a-zA-Z]+
 letter [_a-zA-Z]
 space [ \t\n\v\f\r]
-int {decNum}
+int {decNum}|{octNum}|{hexNum}
 float {digit}+{exp}|{base}{exp}?
 wrongfloat {base}[eE]([-\+]?{base})?
 exp [eE][-\+]?{digit}+
@@ -85,6 +113,19 @@ while {getToken("WHILE"); return WHILE;}
 {decNum} {
     getToken("INT");
     yylval->intvalue = atoi(yytext);
+    return INT;
+}
+
+{octNum} {
+	getToken("INT");
+	if (isOct())
+		yylval->intvalue = strtol(yytext, NULL, 8);
+	return INT;
+}
+{hexNum} {
+    getToken("INT");
+	if (isHex())
+		yylval->intvalue = strtol(yytext, NULL, 16);
     return INT;
 }
 
