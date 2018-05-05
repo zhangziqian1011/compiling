@@ -1,40 +1,40 @@
 #include "partree.h"
 
-node *build(char *key,int narg,...)
+TreeNode *buildTree(char *name,int narg,...)
 {
 	int i=0;
-	node *root=newnode();//创建树的根节点
-	root->name=(char *)malloc(strlen(key)+1);
-	strcpy(root->name.key);
+	TreeNode *root=newNode();//创建树的根节点
+	root->name=(char *)malloc(strlen(name)+1);
+	strcpy(root->name,name);
 	va_list p;//开始对可变参数进行处理
 	va_start(p,narg);
-	node *p1;
+	TreeNode *p1;
 	while(i<narg)//依次获取各个可变参数
 	{
-		p1=va_arg(p,node *);
+		p1=va_arg(p,TreeNode *);
 		if(i==0)
 		{
 			root->lineno=p1->lineno;
 		}
-		addnode(root,p1);
+		addChild(root,p1);
 		i++;
 	}
 	va_end(p);
 	return root;
 }
 
-node *newnode()
+TreeNode *newNode()
 {
-	node *p=(node *)malloc(sizeof(node));
+	TreeNode *p=(TreeNode *)malloc(sizeof(TreeNode));
 	p->first=p->next=NULL;//对新节点初始化
 	return p;
 }
 
-void addnode(node *p1,node *p2)
+void addChild(TreeNode *p1,TreeNode *p2)
 {
 	if(p1->first!=NULL)//判断是否有子节点
 	{
-		node *temp=p1->first;
+		TreeNode *temp=p1->first;
 		while(temp->next!=NULL)
 		{
 			temp=temp->next;
@@ -47,9 +47,9 @@ void addnode(node *p1,node *p2)
 	}
 }
 
-void printtree(node *root,int n)
+void printTree(TreeNode *root,int n)
 {
-	for(int=0;i<2*n;i++)
+	for(int i=0;i<2*n;i++)
 	{
 		printf(" ");//凑格式
 	}
@@ -74,10 +74,10 @@ void printtree(node *root,int n)
 		printf(" (%d)",root->lineno);
 	}
 	printf("\n");
-	node *p=root->first;
+	TreeNode *p=root->first;
 	while(p)
 	{
-		printtree(p,depth+1);
+		printTree(p,n+1);
 		p=p->next;
 	}
 }

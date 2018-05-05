@@ -1,5 +1,5 @@
 %{
-#include "tree.h"
+#include "partree.h"
 #include "lex.yy.c"
 #include <stdarg.h>
 //#define YYERROR_VERBOSE
@@ -88,6 +88,46 @@ Stmt : Exp SEMI {$$ = reduction("Stmt", 2, $1, $2);}
     | WHILE LP Exp RP Stmt {$$ = reduction("Stmt", 5, $1, $2, $3, $4, $5);}
     | error SEMI {yyerrok;}
 	;
+
+/*Local Denifitions*/
+DefList : Def DefList {$$ = reduction("DefList", 2, $1, $2);}
+    | {$$ = NULL;}/*empty*/
+    ;
+Def : Specifier DecList SEMI {$$ = reduction("Def", 3, $1, $2, $3);}
+    | error SEMI {yyerrok;}
+    ;
+DecList : Dec {$$ = reduction("DecList", 1, $1);}
+    | Dec COMMA DecList {$$ = reduction("DecList", 3, $1, $2, $3);}
+    ;
+Dec : VarDec {$$ = reduction("Dec", 1, $1);}
+    | VarDec ASSIGNOP Exp {$$ = reduction("Dec", 3, $1, $2, $3);}
+    ;
+
+/*Expressions*/
+Exp : Exp ASSIGNOP Exp {$$ = reduction("Exp", 3, $1, $2, $3);}
+    | Exp AND Exp {$$ = reduction("Exp", 3, $1, $2, $3);}
+    | Exp OR Exp {$$ = reduction("Exp", 3, $1, $2, $3);}
+    | Exp RELOP Exp {$$ = reduction("Exp", 3, $1, $2, $3);}
+    | Exp PLUS Exp {$$ = reduction("Exp", 3, $1, $2, $3);}
+    | Exp MINUS Exp {$$ = reduction("Exp", 3, $1, $2, $3);}
+    | Exp STAR Exp {$$ = reduction("Exp", 3, $1, $2, $3);}
+    | Exp DIV Exp {$$ = reduction("Exp", 3, $1, $2, $3);}
+    | LP Exp LP {$$ = reduction("Exp", 3, $1, $2, $3);}
+    | MINUS Exp {$$ = reduction("Exp", 2, $1, $2);}
+    | NOT Exp {$$ = reduction("Exp", 2, $1, $2);}
+    | ID LP Args RP {$$ = reduction("Exp", 4, $1, $2, $3, $4);}
+    | ID LP RP {$$ = reduction("Exp", 3, $1, $2, $3);}
+    | Exp LB Exp RB {$$ = reduction("Exp", 4, $1, $2, $3, $4);}
+    | Exp DOT ID {$$ = reduction("Exp", 3, $1, $2, $3);}
+    | ID {$$ = reduction("Exp", 1, $1);}
+    | INT {$$ = reduction("Exp", 1, $1);}
+    | FLOAT {$$ = reduction("Exp", 1, $1);}
+	| error RP {yyerrok;}
+    ;
+Args : Exp COMMA Args {$$ = reduction("Args", 3, $1, $2, $3);}
+    | Exp {$$ = reduction("Args", 1, $1);}
+    ;
+
 
 
 

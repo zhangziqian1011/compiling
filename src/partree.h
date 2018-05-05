@@ -6,20 +6,20 @@
 #include<string.h>
 #include<stdarg.h>
 
-typedef struct tnode
+typedef struct treeNode
 {
 	int intvalue;
-	double doublevalue;
+	double floatvalue;
 	char *stringvalue;
 	char *name;
 	int lineno;
-	struct node *first;
-	struct node *next;
-}node;
+	struct treeNode *first;
+	struct treeNode *next;
+}TreeNode;
 
-node *build(char *,int,...);
-node *newnode();
-void addnode(node *,node *);
-void printtree(node *,int);
+TreeNode *buildTree(char *,int,...);
+TreeNode *newNode();
+void addChild(TreeNode *,TreeNode *);
+void printTree(TreeNode *,int);
 
 #endif
