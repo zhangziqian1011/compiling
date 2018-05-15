@@ -14,8 +14,8 @@ YFC=$(shell find ./ -name "*.y" | sed s/[^/]*\\.y/syntax.tab.c/)
 LFO=$(LFC:.c=.o)
 YFO=$(YFC:.c=.o)
 
-CMM=$(shell find ../testcase -name "*.cmm")
-OUTS=$(CMM:.cmm=.out)
+CMMFILES=$(shell find ../testcase -name "*.cmm")
+OUTFILES=$(CMMFILES:.cmm=.out)
 
 #TARGETS
 parser: syntax $(filter-out $(LFO),$(OBJS))
@@ -33,8 +33,8 @@ syntax-c: $(YFILES)
 clean:
 	rm -f ../parser lex.yy.c syntax.tab.c syntax.tab.h syntax.output
 	rm -f $(OBJS) $(OBJS:.o=.d)
+	rm -f $(OUTFILES)
 	rm -f $(LFC) $(YFC) $(YFC:.c=.h)
-	rm -f $(OUTS)
 	rm -f *~
 
 test: parser
@@ -48,9 +48,23 @@ test: parser
 	../parser ../testcase/test8.cmm 1> ../testcase/test8.out
 	../parser ../testcase/test9.cmm 1> ../testcase/test9.out
 	../parser ../testcase/test10.cmm 1> ../testcase/test10.out
+	../parser ../testcase/test11.cmm 1> ../testcase/test11.out
+	../parser ../testcase/test12.cmm 1> ../testcase/test12.out
+	../parser ../testcase/test13.cmm 1> ../testcase/test13.out
+	../parser ../testcase/test14.cmm 1> ../testcase/test14.out
+	../parser ../testcase/test15.cmm 1> ../testcase/test15.out
+	../parser ../testcase/test16.cmm 1> ../testcase/test16.out
+	../parser ../testcase/test17.cmm 1> ../testcase/test17.out
+	../parser ../testcase/test18.cmm 1> ../testcase/test18.out
+	../parser ../testcase/test19.cmm 1> ../testcase/test19.out
+	../parser ../testcase/test20.cmm 1> ../testcase/test20.out
+	../parser ../testcase/test21.cmm 1> ../testcase/test21.out
+	../parser ../testcase/test22.cmm 1> ../testcase/test22.out
+	../parser ../testcase/test23.cmm 1> ../testcase/test23.out
+	../parser ../testcase/test24.cmm 1> ../testcase/test24.out
 
 submit: clean
-	zip -r ../../151220166_lab1.zip ../
+	zip -r ../../151220166_lab2.zip ../
 	
 
 
