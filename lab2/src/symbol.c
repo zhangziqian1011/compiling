@@ -60,3 +60,22 @@ void deleteBefore(SymbolNode *data)
 	if (data->nextStack != NULL)
 		data->nextStack->preStack = data->preStack;
 }
+
+Symbol* findSymbol(char *name) {
+	int index = hash_pjw(name);
+	SymbolNode *node = table + index;
+
+	for (node = node->nextHashList; node != NULL; node = node->nextHashList) {
+		Symbol* symbol = node->symbol;
+		if (symbol == NULL || strcmp(symbol->name, name) == 0) return symbol;
+	}
+	return NULL;
+}
+
+int symbolIsDefined(char *name)
+{
+	Symbol* symbol = findSymbol(name);
+	if (symbol == NULL) return 0;
+	if (symbol->depth == top) return 1;
+	return 0;
+}
