@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include "symbol.h"
 
-
+#define SIZE 0x4000
 
 SymbolNode table[SIZE], stack[SIZE];
 int top;
@@ -78,4 +78,64 @@ int symbolIsDefined(char *name)
 	if (symbol == NULL) return 0;
 	if (symbol->depth == top) return 1;
 	return 0;
+}
+
+int symbolTableInsert(Symbol* symbol)
+{
+	if (symbolIsDefined(symbol->name)) return 0;
+	SymbolNode *node = (SymbolNode*)malloc(sizeof(SymbolNode));
+	int index = hash_pjw(symbol->name);
+	symbol->depth = top;
+	node->nextHashList = node->preHashList = NULL;
+	node->preStack = node->nextStack = NULL;
+	node->symbol = symbol;
+	insertBefore(table + index, stack + top, node);
+	return 1;
+}
+
+void stackPush()
+{
+	top++;
+}
+
+void stackPop() 
+{
+	SymbolNode *p, *node = stack + top;
+	for (node = node->nextStack; node != NULL;) {
+		deleteBefore(node); 
+		p = node;
+		node = node->nextStack;
+		Symbol *symbol = p->symbol;
+		if (symbol != NULL) {
+			Type *type = symbol->type;
+			if (type != NULL) {
+				if ((symbol->kind == VAR && type->kind == ARRAY) || symbol->kind == STRUCTS) {
+					releaseType(type);
+				}
+			}
+			free(symbol->name);
+			free(symbol);
+		}	
+		free(p);
+	}
+}
+
+void releaseType(Type* type)
+{
+	if (type->kind == BASIC) free(type);
+	else if (type->kind == ARRAY) {
+		Type *newType = type->array.elem;
+		if (newType->kind == ARRAY) releaseType(newType);
+		free(type);
+	} else {
+		FieldList* node = type->structure;
+		for (; node != NULL; node = node->tail) {
+			FieldList* p = node;
+			releaseType(p->type);
+			free(p->name);
+			free(p->type);
+		}
+		
+		free(type);
+	}
 }

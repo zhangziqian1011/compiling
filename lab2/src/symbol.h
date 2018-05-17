@@ -4,6 +4,30 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+typedef struct type Type;
+typedef struct fieldList FieldList;
+
+struct type {
+	enum { BASIC, ARRAY, STRUCTURE } kind;
+	union {
+		int basic;
+		struct { struct Type *elem; int size; } array;
+		FieldList *structure;
+	};
+};
+
+struct fieldList {
+	char *name;
+	Type *type;
+	FieldList *tail;
+};
+
+typedef struct Func{
+	Type *returnType;
+	FieldList *arg;
+	int isDefined;
+} Func;
+
 typedef struct Symbol {
 	enum { VAR, STRUCTS, FUNC } kind;
 	union {
@@ -26,3 +50,7 @@ void insertBefore(SymbolNode*, SymbolNode*,SymbolNode*);
 void deleteBefore(SymbolNode*);
 Symbol* findSymbol(char*);
 int symbolIsDefined(char*);
+int symbolTableInsert(Symbol*);
+void stackPush();
+void stackPop(); 
+void releaseType(Type*);
