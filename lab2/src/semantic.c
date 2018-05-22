@@ -1,6 +1,26 @@
 # include <string.h>
 # include "semantic.h"
 
+const char *semanticError[] = {"","Undefined variable \"%s\".\n",
+							 "Undefined function \"%s\".\n", 
+							 "Redefined variable \"%s\".\n", 
+							 "Redefined function \"%s\".\n", 
+							 "Type mismatched for assignment.\n", 
+							 "The left-hand side of an assignment must be a variable.\n", 
+							 "Type mismatched for operands.\n", 
+							 "Type mismatched for return.\n",
+							 "Function \"%s(%s)\" is not applicable for arguments \"(%s)\".\n", 
+							 "\"%s\" is not an array.\n", 
+							 "\"%s\" is not a function.\n", 
+							 "\"%f\" is not an integer.\n", 
+							 "Illegal use of \".\".\n", 
+							 "Non-existent field \"%s\".\n", 
+							 "Redefined field \"%s\".\n", 
+							 "Duplicated name \"%s\".\n", 
+							 "Undefined structure \"%s\".\n",
+							 "Undefined function \"%s\".\n",
+							 "Inconsistent declaration of function \"%s\".\n"};
+
 SymbolList *funSymbolList;
 FieldList *argList;				 
 Type *TYPE_INT, *TYPE_FLOAT, *returnType;
@@ -172,4 +192,160 @@ Type* analyseStructSpecifier(TreeNode *node)
 			  return type;
 		  }
 	}
+}
+
+void analyseOptTag(TreeNode *node, Type *type)
+{
+	if (node == NULL) return;
+	if (strcmp(node->name, "OptTag") != 0) return;
+	
+	TreeNode *id = node->firstchild;
+	Symbol *symbol = (Symbol*)malloc(sizeof(Symbol));
+	symbol->kind = STRUCTS;
+	symbol->type = type;
+	
+	if (id == NULL) {
+		char name[50] = "0";
+		int num = noStructName, i = 1;
+		while (num > 0) {
+			name[i] = num % 10;
+			i++; num/=10;
+		}
+		name[i] = '\0';
+		symbol->name = (char*)malloc(strlen(name) + 1);
+		strcpy(symbol->name, name);
+	}
+	else if (id != NULL && strcmp(id->name, "ID") == 0) {
+		symbol->name = (char*)malloc(strlen(id->morpheme) + 1);
+		strcpy(symbol->name, id->morpheme);
+	}
+	
+	if (!symbolTableInsert(symbol)) {
+			printf("Error type 16 at Line %d: ", id->lineno);
+			printf(semanticError[16], symbol->name);
+	}
+}
+
+Type* analyseTag(TreeNode *node) 
+{
+	if (node == NULL) return NULL;
+	if (strcmp(node->name, "Tag") != 0) return NULL;
+	
+	TreeNode *id = node->firstchild;
+	if (id != NULL && strcmp(id->name, "ID") == 0) {
+		Symbol *symbol = findSymbol(id->morpheme);
+		if (symbol == NULL || symbol->kind != STRUCTS) {
+			printf("Error type 17 at Line %d: ", id->lineno);
+			printf(semanticError[17], id->morpheme);
+			return NULL;
+		}
+		return symbol->type;
+	}
+	return NULL;
+}
+
+FieldList* analyseVarDec(TreeNode *node, Type *type)
+{
+	TreeNode *first = node->firstchild;
+	if (first != NULL && strcmp(first->name, "ID") == 0) {
+		FieldList *var = (FieldList*)malloc(sizeof(FieldList));
+		var->name = (char*)malloc(strlen(first->morpheme) + 1);
+		strcpy(var->name, first->morpheme);
+		var->type = type;
+		var->tail = NULL;
+		return var;
+	} else if (first != NULL && strcmp(first->name, "VarDec") == 0) {
+		TreeNode *second = first->nextsibling;
+		TreeNode *size = second->nextsibling;
+		Type *newType = (Type*)malloc(sizeof(Type));
+		newType->kind = ARRAY;
+		newType->array.elem = type;
+		newType->array.size = size->intvalue;
+		return analyseVarDec(first, newType);
+	} else return NULL;
+}
+
+Func* analyseFunDec(TreeNode *node, Type *type, int isDefined)
+{
+	if (node == NULL) return NULL;
+	if (strcmp(node->name, "FunDec") != 0) return NULL;
+	
+	TreeNode *id = node->firstchild;
+	TreeNode *second = id->nextsibling;
+	
+	if (id == NULL) return NULL;
+	if (id->nextsibling = NULL) return NULL;
+	
+	TreeNode *third = second->nextsibling;
+	
+	Func *func = (Func*)malloc(sizeof(Func));
+	func->returnType = type;
+	func->isDefined = 0;
+	func->arg = NULL;
+	
+	Symbol *symbol = findSymbol(id->morpheme);
+	
+	if (symbol != NULL && (symbol->kind != FUNC || (isDefined && symbol->func->isDefined))) {
+		printf("Error type 4 at Line %d: ", id->lineno);
+		printf(semanticError[4], symbol->name);
+	} else {
+		if (third != NULL && strcmp(third->name, "VarList") == 0)
+			 func->arg = analyseVarList(third, func->arg);
+			 
+		if (symbol == NULL) { //该函数名未定义或声明过
+			symbol = (Symbol*)malloc(sizeof(Symbol));
+			symbol->kind = FUNC;
+			symbol->func = func;
+			symbol->name = (char*)malloc(strlen(id->morpheme) + 1);
+			strcpy(symbol->name, id->morpheme);
+			
+			if (symbolTableInsert(symbol)) {
+				SymbolList *funSymbol = (SymbolList*)malloc(sizeof(SymbolList));
+				funSymbol->symbol = symbol;
+				funSymbol->lineno = node->lineno;
+				funSymbol->next = funSymbolList;
+				funSymbolList = funSymbol;
+			}
+			return func;
+		} else if (!isTypeEqual(func->returnType, symbol->func->returnType) || !isArgEqual(func->arg, symbol->func->arg)) {
+			FieldList *field;
+			
+			symbol->func->isDefined = isDefined;
+			func->isDefined = symbol->func->isDefined;
+			printf("Error type 19 at Line %d: ", id->lineno);
+			printf(semanticError[19], symbol->name);
+		} else {
+			symbol->func->isDefined = isDefined;
+			func->isDefined = symbol->func->isDefined;
+			return func;
+		}
+	}
+	return NULL;
+}
+
+FieldList* analyseVarList(TreeNode *node, FieldList *args)
+{
+	if (node == NULL) return;
+	if (strcmp(node->name, "VarList") != 0) return;
+	
+	TreeNode *first = node->firstchild;
+	TreeNode *last = first;
+	for (; last->nextsibling != NULL; last = last->nextsibling);
+	
+	FieldList *arg = analyseParamDec(first);
+	arg->tail = args;
+	args = arg;
+	if (last != NULL && strcmp(last->name, "VarList") == 0) return analyseVarList(last, args);
+	else return args;
+}
+
+FieldList* analyseParamDec(TreeNode *node)
+{
+	if (node == NULL) return;
+	if (strcmp(node->name, "ParamDec") != 0) return;
+	
+	TreeNode *specifier = node->firstchild;
+	TreeNode *varDec = specifier->nextsibling;
+	Type *type = analyseSpecifier(specifier);
+	return analyseVarDec(varDec, type);
 }
