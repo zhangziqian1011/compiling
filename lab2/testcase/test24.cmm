@@ -1,0 +1,18 @@
+struct Temp1
+{
+	int i[2][1];
+	float j;
+};
+
+struct Temp2
+{
+	int x[2][2];
+	float y;
+};
+
+int main()
+{
+	struct Temp1 t1;
+	struct Temp2 t2;
+	t1 = t2;
+}
