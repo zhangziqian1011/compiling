@@ -26,24 +26,24 @@ TreeNode *buildTree(char *name,int narg,...)
 TreeNode *newNode()
 {
 	TreeNode *p=(TreeNode *)malloc(sizeof(TreeNode));
-	p->first=p->next=NULL;//对新节点初始化
+	p->firstchild=p->nextsibling=NULL;//对新节点初始化
 	return p;
 }
 
 void addChild(TreeNode *p1,TreeNode *p2)
 {
-	if(p1->first!=NULL)//判断是否有子节点
+	if(p1->firstchild!=NULL)//判断是否有子节点
 	{
-		TreeNode *temp=p1->first;
-		while(temp->next!=NULL)
+		TreeNode *temp=p1->firstchild;
+		while(temp->nextsibling!=NULL)
 		{
-			temp=temp->next;
+			temp=temp->nextsibling;
 		}
-		temp->next=p2;
+		temp->nextsibling=p2;
 	}
 	else
 	{
-		p1->first=p2;
+		p1->firstchild=p2;
 	}
 }
 
@@ -54,7 +54,7 @@ void printTree(TreeNode *root,int n)
 		printf(" ");//凑格式
 	}
 	printf("%s",root->name);
-	if(root->first==NULL)
+	if(root->firstchild==NULL)
 	{
 		if(strcmp(root->name,"INT")==0)
 		{
@@ -66,7 +66,7 @@ void printTree(TreeNode *root,int n)
 		}
 		else if(strcmp(root->name,"ID")==0||strcmp(root->name,"TYPE")==0)
 		{
-			printf(": %s",root->stringvalue);
+			printf(": %s",root->morpheme);
 		}
 	}
 	else
@@ -74,10 +74,10 @@ void printTree(TreeNode *root,int n)
 		printf(" (%d)",root->lineno);
 	}
 	printf("\n");
-	TreeNode *p=root->first;
+	TreeNode *p=root->firstchild;
 	while(p)
 	{
 		printTree(p,n+1);
-		p=p->next;
+		p=p->nextsibling;
 	}
 }

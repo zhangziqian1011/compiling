@@ -54,3 +54,5 @@ int symbolTableInsert(Symbol*);
 void stackPush();
 void stackPop(); 
 void releaseType(Type*);
+
+#endif

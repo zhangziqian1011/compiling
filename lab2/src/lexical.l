@@ -13,8 +13,8 @@ void getToken(char *name)//处理输入
     TreeNode *p = newNode();
     p->name = (char *)malloc(strlen(name) + 1);
     strcpy(p->name, name);
-    p->stringvalue = (char *)malloc(strlen(yytext) + 1);
-    strcpy(p->stringvalue, yytext);
+    p->morpheme = (char *)malloc(strlen(yytext) + 1);
+    strcpy(p->morpheme, yytext);
     p->lineno = yylineno;
     yylval = p;
 }

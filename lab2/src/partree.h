@@ -10,11 +10,10 @@ typedef struct treeNode
 {
 	int intvalue;
 	double floatvalue;
-	char *stringvalue;
+	char *morpheme;
 	char *name;
 	int lineno;
-	struct treeNode *first;
-	struct treeNode *next;
+	struct treeNode *firstchild, *nextsibling;
 }TreeNode;
 
 TreeNode *buildTree(char *,int,...);

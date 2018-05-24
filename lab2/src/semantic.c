@@ -26,6 +26,36 @@ FieldList *argList;
 Type *TYPE_INT, *TYPE_FLOAT, *returnType;
 int noStructName;
 
+Type *copyType(Type *type)
+{
+	Type *newType = malloc(sizeof(Type));
+	newType->kind = type->kind;
+	if (type->kind == BASIC) {
+		newType->basic = type->basic;
+	}else if (type->kind == ARRAY) {
+		(newType->array).elem = copyType(type->array.elem);
+		(newType->array).size = (type->array).size;
+	}else if (type->kind == STRUCTURE) {
+		FieldList *struct1 = type->structure;
+		FieldList *p = NULL;
+		newType->structure = NULL;
+		for (;struct1 != NULL; struct1 = struct1->tail) {
+			FieldList *newStruct = malloc(sizeof(FieldList));
+			newStruct->name = malloc(strlen(struct1->name) + 1);
+			strcpy(newStruct->name, struct1->name);
+			newStruct->type = copyType(struct1->type);
+			newStruct->tail = NULL;
+			if (newType->structure == NULL)
+				newType->structure = newStruct;
+			if (p != NULL)
+				p->tail = newStruct;
+			p = newStruct;
+		}
+
+	}
+	return newType;
+}
+
 int isTypeEqual(Type *type1, Type *type2)
 {
 	if (type1->kind != type2->kind) return 0;
@@ -348,4 +378,434 @@ FieldList* analyseParamDec(TreeNode *node)
 	TreeNode *varDec = specifier->nextsibling;
 	Type *type = analyseSpecifier(specifier);
 	return analyseVarDec(varDec, type);
+}
+
+void analyseCompSt(TreeNode *node, Func *func)
+{
+	if (node == NULL) return;
+	if (strcmp(node->name, "CompSt") != 0) return;
+	
+	stackPush();
+	
+	TreeNode *first = node->firstchild;
+	if (first == NULL) return;
+	TreeNode *defList = first->nextsibling;
+	if (defList == NULL) return;
+	TreeNode *stmtList = defList->nextsibling;
+	
+	if (func != NULL) {
+		FieldList *arg = func->arg;
+		for (; arg != NULL; arg = arg->tail) {
+			Symbol *symbol = (Symbol*)malloc(sizeof(Symbol));
+			symbol->kind = VAR;
+			symbol->type = copyType(arg->type);
+			//symbol->type = arg->type;
+			symbol->name = (char*)malloc(strlen(arg->name) + 1);
+			strcpy(symbol->name, arg->name);
+			
+			symbolTableInsert(symbol);
+		}
+	}
+	if (defList != NULL && strcmp(defList->name, "DefList") == 0) analyseDefList(defList, NULL, 0);
+	if (defList != NULL && strcmp(defList->name, "StmtList") == 0) analyseStmtList(defList);
+	if (stmtList != NULL && strcmp(stmtList->name, "StmtList") == 0) analyseStmtList(stmtList);
+	
+	stackPop();
+}
+
+void analyseStmtList(TreeNode *node)
+{
+	if (node == NULL) return;
+	if (strcmp(node->name, "StmtList") != 0) return;
+	
+	TreeNode *stmt = node->firstchild;
+	if (stmt == NULL) return;
+	
+	analyseStmt(stmt);
+	TreeNode *stmtList = stmt->nextsibling;
+	if (stmtList != NULL && strcmp(stmtList->name, "StmtList") == 0) analyseStmtList(stmtList);	
+}
+
+void analyseStmt(TreeNode *node)
+{
+	if (node == NULL) return;
+	if (strcmp(node->name, "Stmt") != 0) return;
+	
+	TreeNode *first = node->firstchild;
+	if (first != NULL && strcmp(first->name, "Exp") == 0) analyseExp(first);
+	else if (first != NULL && strcmp(first->name, "CompSt") == 0) {
+		analyseCompSt(first, NULL);
+	} else if (first != NULL && strcmp(first->name, "RETURN") == 0) {
+		TreeNode *exp = first->nextsibling;
+		if (exp != NULL && strcmp(exp->name, "Exp") == 0) {
+			Symbol *symbol = analyseExp(exp);
+			if (symbol != NULL) {
+				Type *type = symbol->type;
+				if (type != NULL && !isTypeEqual(type, returnType)) {
+					printf("Error type 8 at Line %d: ", exp->lineno);
+					printf("%s", semanticError[8]);
+				}
+			}
+		}
+	} else {
+		TreeNode *p = first->nextsibling;
+		for (; p != NULL; p = p->nextsibling) {
+			
+			if (p != NULL && strcmp(p->name, "Exp") == 0) {
+				Symbol *symbol = analyseExp(p);
+				if (symbol != NULL) {
+					Type *type = symbol->type;
+					if (type != NULL && !isTypeEqual(type, TYPE_INT)) {
+						printf("Error type 7 at Line %d: ", p->lineno);
+						printf("%s", semanticError[7]);
+					}
+				}
+			} else if (p != NULL && strcmp(p->name, "Stmt") == 0) analyseStmt(p);
+		}
+	}
+}
+
+FieldList* analyseDefList(TreeNode *node, FieldList *structure, int isStruct)
+{
+	if (node == NULL) return;
+	if (strcmp(node->name, "DefList") != 0) return;
+	
+	TreeNode *def = node->firstchild;
+	if (def != NULL && strcmp(def->name, "Def") == 0) {
+		structure = analyseDef(def, structure, isStruct);
+		
+		
+		TreeNode *defList = def->nextsibling;
+		if (defList != NULL && strcmp(defList->name, "DefList") == 0) return analyseDefList(defList, structure, isStruct);
+		else return structure;
+	}
+}
+
+FieldList* analyseDef(TreeNode *node, FieldList *structure, int isStruct) 
+{
+	if (node == NULL) return;
+	if (strcmp(node->name, "Def") != 0) return;
+	
+	TreeNode *specifier = node->firstchild;
+	if (specifier != NULL && strcmp(specifier->name, "Specifier") == 0) {
+		TreeNode *decList = specifier->nextsibling;
+		if (decList != NULL && strcmp(decList->name, "DecList") == 0) {
+			Type *type = analyseSpecifier(specifier);
+			return analyseDecList(decList, type, structure, isStruct);
+		}
+	}
+}
+
+FieldList* analyseDecList(TreeNode *node, Type *type, FieldList *structure, int isStruct)
+{
+	if (node == NULL) return;
+	if (strcmp(node->name, "DecList") != 0) return;
+	
+	TreeNode *dec = node->firstchild;
+	
+	if (dec != NULL && strcmp(dec->name, "Dec") == 0) {
+		structure = analyseDec(dec, type, structure, isStruct);
+		
+
+		if (dec->nextsibling != NULL) {
+			TreeNode *decList = dec->nextsibling->nextsibling;
+			if (decList != NULL && strcmp(decList->name, "DecList") == 0) {
+				return analyseDecList(decList, type, structure, isStruct);
+			}
+		} else return structure;
+		
+	}
+}
+
+FieldList* analyseDec(TreeNode *node, Type *type, FieldList *structure, int isStruct)
+{
+	if (node == NULL) return;
+	if (strcmp(node->name, "Dec") != 0) return;
+	
+	TreeNode *varDec = node->firstchild;
+	TreeNode *last = varDec;
+	for (; last->nextsibling != NULL; last = last->nextsibling);
+	
+	FieldList *var = analyseVarDec(varDec, type);
+	
+	if (isStruct) {
+		FieldList *field;
+		for (field = structure; field != NULL; field = field->tail) {
+			if (strcmp(field->name, var->name) == 0) break;}
+
+		if (field != NULL) {
+			printf("Error type 15 at Line %d: ", node->lineno);
+			printf(semanticError[15], var->name);
+		} else {
+			var->tail = structure;
+			structure = var;
+		}
+		
+		if (last != NULL && strcmp(last->name, "Exp") == 0) {
+			printf("Error type 15 at Line %d: ", node->lineno);
+			printf(semanticError[15], var->name);
+		}
+		return structure;
+	} else {
+		Symbol *symbol = (Symbol*)malloc(sizeof(Symbol));
+		symbol->kind = VAR;
+		symbol->type = var->type;
+		symbol->name = var->name;
+		symbol->name = (char*)malloc(strlen(var->name) + 1);
+		strcpy(symbol->name, var->name);
+		
+		if (!symbolTableInsert(symbol)) {
+			printf("Error type 3 at Line %d: ", node->lineno);
+			printf(semanticError[3], var->name);
+		} else if (last != NULL && strcmp(last->name, "Exp") == 0) {
+			Symbol *symbol1 = analyseExp(last);
+			if (symbol1 != NULL) {
+				Type *type = symbol1->type;
+				if (type != NULL && !isTypeEqual(type, var->type)) {
+					printf("Error type 5 at Line %d: ", node->lineno);
+					printf("%s",semanticError[5]);
+				}
+			}
+		}
+		return NULL;
+	}
+}
+
+void argString(FieldList *arg, char* str) {
+	for (; arg != NULL; arg = arg->tail) {
+		if (isTypeEqual(arg->type, TYPE_INT)) {
+			strcpy(str, "int");
+			str = str + strlen(str);
+		}
+		else if (isTypeEqual(arg->type, TYPE_FLOAT)) {
+			strcpy(str, "float");
+			str = str + strlen(str);
+		}
+		else {
+			Type *type = arg->type;
+			if (type->kind = STRUCTURE) {
+				strcpy(str, "struct");
+				str = str + strlen(str);
+			}
+			else {
+				Type *type = arg->type;
+				for (; type != NULL && type->kind == ARRAY; type = type->array.elem);
+				if (isTypeEqual(type, TYPE_INT)) strcpy(str, "int");
+				else if (isTypeEqual(type, TYPE_FLOAT)) strcpy(str, "float");
+				else if (type->kind = STRUCTURE) strcpy(str, "struct");
+			
+				for (type = arg->type; type != NULL && type->kind == ARRAY; type = type->array.elem) {
+					sprintf(str, "[%d]", type->array.size);
+					str = str + strlen(str);
+				}
+			}
+		}
+		if (arg->tail != NULL) {
+			sprintf(str, ", ");
+			str = str + 2;
+		}
+	}
+}
+
+Symbol* analyseExp(TreeNode *node)
+{
+	if (node == NULL) return;
+	if (strcmp(node->name, "Exp") != 0) return;
+	
+	TreeNode *first = node->firstchild;
+	
+	if (first == NULL) return;
+	TreeNode *second = first->nextsibling;
+	
+	if (second != NULL && strcmp(second->name, "ASSIGNOP") == 0) {
+		TreeNode *third = second->nextsibling;
+		Symbol *left = analyseExp(first);
+		if (third != NULL && strcmp(third->name, "Exp") == 0) {
+			Symbol *right = analyseExp(third);
+			if (left != NULL && (left->kind != VAR || (left->kind == VAR && left->name == NULL))) {
+				printf("Error type 6 at Line %d: ", node->lineno);
+				printf("%s",semanticError[6]);
+			} else if (left != NULL && right != NULL && !isTypeEqual(left->type, right->type)) {
+				printf("Error type 5 at Line %d: ", node->lineno);
+				printf("%s",semanticError[5]);
+			}
+		}
+		
+		
+		return left;
+	} else if (second != NULL && (strcmp(second->name, "AND") == 0 || strcmp(second->name, "OR") == 0)) {
+		TreeNode *third = second->nextsibling;
+		Symbol *left = analyseExp(first);
+		if (third != NULL && strcmp(third->name, "Exp") == 0) {
+			Symbol *right = analyseExp(third);
+			if (left != NULL && right != NULL && !(isTypeEqual(left->type, TYPE_INT) && isTypeEqual(right->type, TYPE_INT))) {
+				printf("Error type 7 at Line %d: ", node->lineno);
+				printf("%s",semanticError[7]);
+			}
+		}
+		return left;
+	} else if (first != NULL && strcmp(first->name, "MINUS") == 0) {
+		if (second != NULL && strcmp(second->name, "Exp") == 0) {
+			Symbol *left = analyseExp(second);
+			if (left == NULL || !(isTypeEqual(left->type, TYPE_INT) || isTypeEqual(left->type, TYPE_FLOAT))) {
+				printf("Error type 7 at Line %d: ", node->lineno);
+				printf("%s",semanticError[7]);
+			}
+			return left;
+		}
+	} else if (first != NULL && strcmp(first->name, "NOT") == 0) {
+		if (second != NULL && strcmp(second->name, "Exp") == 0) {
+			Symbol *left = analyseExp(first);
+			if (left == NULL || !isTypeEqual(left->type, TYPE_INT)) {
+				printf("Error type 7 at Line %d: ", node->lineno);
+				printf("%s",semanticError[7]);
+			}
+			return left;
+		}
+	} else if (first != NULL && strcmp(first->name, "ID") == 0) {
+		if (second != NULL && strcmp(second->name, "LP") == 0) {
+			Symbol *symbol = findSymbol(first->morpheme);
+			if (symbol == NULL) {
+				printf("Error type 2 at Line %d: ", node->lineno);
+				printf(semanticError[2], first->morpheme);
+			} else if (symbol->kind != FUNC) {
+				printf("Error type 11 at Line %d: ", node->lineno);
+				printf(semanticError[11], first->morpheme);
+			} else {
+				FieldList *arg1 = NULL, *arg2 = symbol->func->arg;
+				TreeNode *args = second->nextsibling;
+				if (args != NULL && strcmp(args->name, "Args") == 0) {
+					
+					arg1 = analyseArgs(args, arg1);
+					char str1[50],str2[50];
+					if (!isArgEqual(arg1, arg2)) {
+						argString(arg1, str1);
+						argString(arg2, str2);
+						printf("Error type 9 at Line %d: ", first->lineno);
+						printf(semanticError[9], symbol->name, str1, str2);
+					}	
+				}
+				Symbol *newSymbol = (Symbol*)malloc(sizeof(Symbol));;
+				newSymbol->kind = symbol->kind;
+				newSymbol->type = symbol->func->returnType;
+				newSymbol->depth = symbol->depth;
+				newSymbol->name = (char*)malloc(strlen(symbol->name) + 1);
+				strcpy(newSymbol->name, symbol->name);
+
+				return newSymbol;
+			}
+			return symbol;
+		} else {
+			Symbol *symbol = findSymbol(first->morpheme);
+			if (symbol == NULL) {
+				printf("Error type 1 at Line %d: ", first->lineno);
+				printf(semanticError[1], first->morpheme);
+			}
+		
+			return symbol;
+		}
+	} else if (second != NULL && strcmp(second->name, "LB") == 0) {
+		TreeNode *third = second->nextsibling;
+		Symbol *left = analyseExp(first);
+		
+		Type *type = left->type;
+		if (left == NULL || type->kind != ARRAY) {
+			printf("Error type 10 at Line %d: ", first->lineno);
+			printf(semanticError[10], left->name);
+			return left;
+		}
+		if (third != NULL) {
+			Symbol *right = analyseExp(third);
+			if (right == NULL || !isTypeEqual(right->type, TYPE_INT)) {
+				printf("Error type 12 at Line %d: ", third->lineno);
+				printf(semanticError[12], third->firstchild->floatvalue);
+			}
+		}
+		Symbol *newSymbol = (Symbol*)malloc(sizeof(Symbol));;
+		newSymbol->kind = left->kind;
+		newSymbol->type = type->array.elem;
+		newSymbol->depth = left->depth;
+		newSymbol->name = (char*)malloc(strlen(left->name) + 1);
+		strcpy(newSymbol->name, left->name);
+
+		return newSymbol;
+		
+	} else if (second != NULL && strcmp(second->name, "DOT") == 0) {
+		TreeNode *third = second->nextsibling;
+		Symbol *left = analyseExp(first);
+		Type *type = left->type;
+		
+		if (left == NULL || type->kind != STRUCTURE) {
+			printf("Error type 13 at Line %d: ", first->lineno);
+			printf("%s", semanticError[13]);
+			return NULL;
+		} else if (third != NULL) {
+			FieldList *field = type->structure;
+			for (; field != NULL; field = field->tail)
+				if (strcmp(field->name, third->morpheme) == 0) break;
+			if (field == NULL) {
+				printf("Error type 14 at Line %d: ", first->lineno);
+				printf(semanticError[14], third->morpheme);
+				return NULL;
+			}
+			Symbol *newSymbol = (Symbol*)malloc(sizeof(Symbol));;
+			newSymbol->kind = left->kind;
+			newSymbol->type = field->type;
+			newSymbol->depth = left->depth;
+			newSymbol->name = (char*)malloc(strlen(left->name) + 1);
+			strcpy(newSymbol->name, left->name);
+			
+			return newSymbol;
+		}
+		
+	} else if (first != NULL && strcmp(first->name, "Exp") == 0) {
+		TreeNode *third = second->nextsibling;
+		Symbol *left = analyseExp(first);
+		if (third != NULL && strcmp(third->name, "Exp") == 0) {
+			Symbol *right = analyseExp(third);
+			if (left != NULL && right != NULL && !isTypeEqual(left->type, right->type)) {
+				printf("Error type 7 at Line %d: ", node->lineno);
+				printf("%s",semanticError[7]);
+			}
+		}
+		return left;
+	}else if (first !=NULL && strcmp(first->name, "LP") == 0) {
+		if (second != NULL && strcmp(second->name, "Exp") == 0) {
+			return analyseExp(second);
+		}
+	} else if (first != NULL && strcmp(first->name, "INT") == 0) {
+		Symbol *symbol = (Symbol*)malloc(sizeof(Symbol));
+		symbol->kind = VAR;
+		symbol->type = TYPE_INT;
+		symbol->name = NULL;
+		return symbol;
+	} else {
+		Symbol *symbol = (Symbol*)malloc(sizeof(Symbol));
+		symbol->kind = VAR;
+		symbol->type = TYPE_FLOAT;
+		symbol->name = NULL;
+		return symbol;
+	}
+}
+
+FieldList* analyseArgs(TreeNode *node, FieldList *args)
+{
+	if (node == NULL) return;
+	if (strcmp(node->name, "Args") != 0) return;
+	
+	TreeNode *exp = node->firstchild;
+	TreeNode *last = exp;
+	for (; last->nextsibling != NULL; last = last->nextsibling);
+	
+	if (exp != NULL && strcmp(exp->name, "Exp") == 0) {
+		FieldList *arg = (FieldList*)malloc(sizeof(FieldList));
+		Symbol *symbol = analyseExp(exp);
+		
+		arg->name = NULL;
+		arg->type = symbol->type;
+		arg->tail = args;
+		args = arg;
+		if (last != NULL && strcmp(last->name, "Args") == 0) return analyseArgs(last, args);
+		else return args;
+	}
 }

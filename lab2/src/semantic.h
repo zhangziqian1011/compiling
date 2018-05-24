@@ -1,7 +1,7 @@
 #ifndef __SEMANTIC_H__
 #define __SEMANTIC_H__
 
-# include "tree.h"
+# include "partree.h"
 # include "symbol.h"
 
 typedef struct SymbolList {
@@ -27,3 +27,15 @@ FieldList* analyseVarDec(TreeNode*, Type*);
 Func* analyseFunDec(TreeNode*, Type*, int);
 FieldList* analyseVarList(TreeNode*, FieldList*);
 FieldList* analyseParamDec(TreeNode*);
+void analyseCompSt(TreeNode*, Func*);
+void analyseStmtList(TreeNode*);
+void analyseStmt(TreeNode*);
+FieldList* analyseDefList(TreeNode*, FieldList*, int);
+FieldList* analyseDef(TreeNode*, FieldList*, int);
+FieldList* analyseDecList(TreeNode*, Type*, FieldList*, int);
+FieldList* analyseDec(TreeNode*, Type*, FieldList*, int);
+void argString(FieldList*, char*);
+Symbol* analyseExp(TreeNode*);
+FieldList* analyseArgs(TreeNode*, FieldList*);
+
+#endif
