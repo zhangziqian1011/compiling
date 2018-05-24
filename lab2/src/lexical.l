@@ -51,23 +51,52 @@ int isHex()
 
 %}
 
+%option yylineno
 digit [0-9]
+letter [_a-zA-Z]
 decNum 0|[1-9]{digit}*
 octNum 0{digit}+
 hexNum 0[xX][0-9a-zA-Z]+
-letter [_a-zA-Z]
-space [ \t\n\v\f\r]
 int {decNum}|{octNum}|{hexNum}
-float {digit}+{exp}|{base}{exp}?
-wrongfloat {base}[eE]([-\+]?{base})?
 exp [eE][-\+]?{digit}+
 base {digit}+\.{digit}*|\.{digit}+
+float {digit}+{exp}|{base}{exp}?
+wrongfloat {base}[eE]([-\+]?{base})?
 id {letter}({letter}|{digit})*
-%option yylineno
+space [ \t\n\v\f\r]
 
 
 %%
 
+{decNum} {
+    getToken("INT");
+    yylval->intvalue = atoi(yytext);
+    return INT;
+}
+{octNum} {
+	getToken("INT");
+	if (isOct())
+		yylval->intvalue = strtol(yytext, NULL, 8);
+	return INT;
+}
+{hexNum} {
+    getToken("INT");
+	if (isHex())
+		yylval->intvalue = strtol(yytext, NULL, 16);
+    return INT;
+}
+{wrongfloat} {
+	getToken("FLOAT");
+	printf("Error type A at Line %d: Illegal float number \'%s\'\n", yylineno, yytext);
+	isError = 1;
+	yylval->floatvalue = .0;
+	return FLOAT;
+}
+{float} {
+    getToken("FLOAT");
+    yylval->floatvalue = atof(yytext);
+    return FLOAT;
+}
 ; {getToken("SEMI"); return SEMI;}
 , {getToken("COMMA"); return COMMA;}
 = {getToken("ASSIGNOP"); return ASSIGNOP;}
@@ -97,8 +126,7 @@ while {getToken("WHILE"); return WHILE;}
 "//".* {}
 "/*" {
     char a = 'x', b = input();
-    while (a != '*' || b != '/') 
-    {
+    while (a != '*' || b != '/') {
         a = b;
         b = input();
         if (b == EOF)
@@ -109,39 +137,4 @@ while {getToken("WHILE"); return WHILE;}
     isError = 1;
     printf("Error type A at Line %d: Mysterious characters \"%s\"\n", yylineno, yytext); 
 }
-
-{decNum} {
-    getToken("INT");
-    yylval->intvalue = atoi(yytext);
-    return INT;
-}
-
-{octNum} {
-	getToken("INT");
-	if (isOct())
-		yylval->intvalue = strtol(yytext, NULL, 8);
-	return INT;
-}
-{hexNum} {
-    getToken("INT");
-	if (isHex())
-		yylval->intvalue = strtol(yytext, NULL, 16);
-    return INT;
-}
-
-{wrongfloat} {
-	getToken("FLOAT");
-	printf("Error type A at Line %d: Illegal float number \'%s\'\n", yylineno, yytext);
-	isError = 1;
-	yylval->floatvalue = .0;
-	return FLOAT;
-}
-{float} {
-    getToken("FLOAT");
-    yylval->floatvalue = atof(yytext);
-    return FLOAT;
-}
-
 %%
-
-

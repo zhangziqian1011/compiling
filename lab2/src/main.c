@@ -1,34 +1,31 @@
 #include "syntax.tab.h"
 #include "partree.h"
+#include "symbol.h"
+#include "semantic.h"
 
-extern int yyrestart(FILE *f1);
-extern int yyparse();
-
-int main(int argc,char **argv)
+extern TreeNode *root = NULL;
+int main(int argc, char **argv)
 {
-	if(argc<2)
+    if (argc <= 1) return 1;
+	int i = 1;
+	for (i = 1 ; i < argc; i++)
 	{
-		return 1;
-	}
-	else
-	{
-		int i=1;
-		while(i<argc)
+		FILE* f = fopen(argv[i], "r");
+	    if (!f)//file cannot open
 		{
-			FILE *f=fopen(argv[i],"r");
-			if(!f)
-			{
-				perror(argv[1]);
-				return 1;
-			}
-			else
-			{
-				yyrestart(f);
-				yyparse();
-				fclose(f);
-			}
-			i++;
+			perror(argv[1]);
+			return 1;
 		}
-		return 0;
+		/*parsing*/
+		yyrestart(f);
+		yyparse();
+		if (root != NULL)
+		{
+			symbolInit();
+			initBasicType();
+			analyseProgram(root);
+		}
+		fclose(f);
 	}
+    return 0;
 }
