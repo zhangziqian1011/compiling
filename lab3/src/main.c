@@ -2,6 +2,7 @@
 #include "partree.h"
 #include "symbol.h"
 #include "semantic.h"
+#include "intercode.h"
 
 extern TreeNode *root = NULL;
 int main(int argc, char **argv)
