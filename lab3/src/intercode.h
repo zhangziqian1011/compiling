@@ -58,4 +58,16 @@ InterCodes* newInterCodes3(interCodeKind, Operand*, Operand*, Operand*);
 int getInterCodesId(InterCodes*);
 void interCodesPrint(InterCodes*);
 
+void operandInsertBefore(OperandList*, OperandList*);
+void operandDeleteBefore(OperandList*);
+int varOperandId();
+int tempOperandId();
+int labelOperandId();
+Operand* newVarOperand();
+Operand* newTempOperand();
+Operand* newLabelOperand();
+Operand* newConstOperand(int);
+Operand* newFunctionOperand(char*);
+char* operandPrint(Operand*);
+
 #endif

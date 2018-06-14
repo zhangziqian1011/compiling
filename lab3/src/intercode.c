@@ -131,3 +131,93 @@ void interCodesPrint(InterCodes *interCodes)
 	}
 	printf("\n");
 }
+
+void operandInsertBefore(OperandList *operandList, OperandList *data)
+{
+	data->next = operandList;
+	data->prev = operandList->prev;
+	operandList->prev = data;
+	data->prev->next = data;
+}
+
+void operandDeleteBefore(OperandList *data)
+{
+	data->prev->next = data->next;
+	data->next->prev = data->prev;
+}
+
+int varOperandId()
+{
+	static int vId = 0;
+	return ++vId;
+}
+int tempOperandId()
+{
+	static int tId = 0;
+	return ++tId;
+}
+int labelOperandId()
+{
+	static int lId = 0;
+	return ++lId;
+}
+
+Operand* newVarOperand()
+{
+	Operand *op = (Operand*)malloc(sizeof(Operand));
+	op->kind = VARIABLE;
+	op->id = varOperandId();
+	return op;
+}
+
+Operand* newTempOperand()
+{
+	Operand *op = (Operand*)malloc(sizeof(Operand));
+	op->kind = TEMP;
+	op->id = tempOperandId();
+	return op;
+}
+
+Operand* newLabelOperand()
+{
+	Operand *op = (Operand*)malloc(sizeof(Operand));
+	op->kind = LABEL;
+	op->id = varOperandId();
+	return op;
+}
+
+Operand* newConstOperand(int num)
+{
+	Operand *op = (Operand*)malloc(sizeof(Operand));
+	op->kind = CONSTANT;
+	op->num = num;
+	return op;
+}
+
+Operand* newFunctionOperand(char *name)
+{
+	Operand *op = (Operand*)malloc(sizeof(Operand));
+	op->kind = FUNCTION;
+	op->name = (char*)malloc(name + 1);
+	strcpy(op->name, name);
+	return op;
+}
+
+char* operandPrint(Operand *op) 
+{
+	char buf[100];
+	char *name;
+	if (op->kind == TEMP) {
+		sprintf(buf, "t%d", op->id);
+	} else if (op->kind == VARIABLE) {
+		sprintf(buf, "v%d", op->id);
+	} else if (op->kind == CONSTANT) {
+		sprintf(buf, "#%d", op->num);
+	} else if (op->kind == LABEL) {
+		sprintf(buf, "label%d", op->id);
+	} else return op->name;
+
+	name = malloc(strlen(buf) + 1);
+	strcpy(name, buf);
+	return name;
+}
