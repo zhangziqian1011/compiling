@@ -11,3 +11,12 @@ InterCodes* translateCompst(TreeNode*, Func*);
 InterCodes* translateDefList(TreeNode*);
 InterCodes* translateDef(TreeNode*);
 InterCodes* translateDecList(TreeNode*);
+char* getVarDecName(TreeNode*);
+InterCodes* translateDec(TreeNode*);
+InterCodes* translateStmtList(TreeNode*);
+InterCodes* translateStmt(TreeNode*);
+InterCodes* translateExp(TreeNode*, Operand*);	
+InterCodes* translateCond(TreeNode*, Operand*, Operand*);
+InterCodes* translateArgs(TreeNode*, FieldList*, OperandList*);
+
+#endif
