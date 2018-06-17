@@ -24,6 +24,7 @@ int main(int argc, char **argv)
 		{
 			symbolInit();
 			initBasicType();
+			initOperandBasic();
 			analyseProgram(root);
 		}
 		fclose(f);

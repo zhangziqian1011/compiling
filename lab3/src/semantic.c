@@ -1,5 +1,6 @@
 # include <string.h>
 # include "semantic.h"
+#include "translate.h"
 
 const char *semanticError[] = {"","Undefined variable \"%s\".\n",
 							 "Undefined function \"%s\".\n", 
@@ -20,8 +21,8 @@ const char *semanticError[] = {"","Undefined variable \"%s\".\n",
 							 "Undefined structure \"%s\".\n",
 							 "Undefined function \"%s\".\n",
 							 "Inconsistent declaration of function \"%s\".\n"};
-
-SymbolList *funSymbolList;
+							 
+SymbolList *funSymbolList;		
 FieldList *argList;				 
 Type *TYPE_INT, *TYPE_FLOAT, *returnType;
 int noStructName;
@@ -149,6 +150,7 @@ void analyseExtDef(TreeNode *node)
 		if (func == NULL) return;
 		returnType = func->returnType;
 		if (isDefined) {
+			printf("FUNCTION %s :\n",(second->firstchild)->morpheme);
 			analyseCompSt(third, func);
 			func->isDefined = 1;
 		}
@@ -168,6 +170,8 @@ void analyseExtDecList(TreeNode *node, Type *type)
 	Symbol *symbol = (Symbol*)malloc(sizeof(Symbol));
 	symbol->kind = VAR;
 	symbol->type = var->type;
+	symbol->id = -1;
+	symbol->isRef = 0;
 	symbol->name = (char*)malloc(strlen(varDec->morpheme) + 1);
 	strcpy(symbol->name, varDec->morpheme);
 
@@ -233,6 +237,8 @@ void analyseOptTag(TreeNode *node, Type *type)
 	Symbol *symbol = (Symbol*)malloc(sizeof(Symbol));
 	symbol->kind = STRUCTS;
 	symbol->type = type;
+	symbol->id = -1;
+	symbol->isRef = 0;
 	
 	if (id == NULL) {
 		char name[50] = "0";
@@ -326,6 +332,7 @@ Func* analyseFunDec(TreeNode *node, Type *type, int isDefined)
 			symbol = (Symbol*)malloc(sizeof(Symbol));
 			symbol->kind = FUNC;
 			symbol->func = func;
+			symbol->id = -1;
 			symbol->name = (char*)malloc(strlen(id->morpheme) + 1);
 			strcpy(symbol->name, id->morpheme);
 			
@@ -399,9 +406,12 @@ void analyseCompSt(TreeNode *node, Func *func)
 			Symbol *symbol = (Symbol*)malloc(sizeof(Symbol));
 			symbol->kind = VAR;
 			symbol->type = copyType(arg->type);
+			symbol->id = -1;
+			symbol->isRef = 0;
 			//symbol->type = arg->type;
 			symbol->name = (char*)malloc(strlen(arg->name) + 1);
 			strcpy(symbol->name, arg->name);
+			if (arg->type->kind != BASIC) symbol->isRef = 1;
 			
 			symbolTableInsert(symbol);
 		}
@@ -410,6 +420,11 @@ void analyseCompSt(TreeNode *node, Func *func)
 	if (defList != NULL && strcmp(defList->name, "StmtList") == 0) analyseStmtList(defList);
 	if (stmtList != NULL && strcmp(stmtList->name, "StmtList") == 0) analyseStmtList(stmtList);
 	
+	if(func != NULL) {
+		InterCodes *interCodes = translateCompst(node, func);
+		interCodesPrint(interCodes);
+	}
+
 	stackPop();
 }
 
@@ -551,6 +566,8 @@ FieldList* analyseDec(TreeNode *node, Type *type, FieldList *structure, int isSt
 		symbol->kind = VAR;
 		symbol->type = var->type;
 		symbol->name = var->name;
+		symbol->id = -1;
+		symbol->isRef = 0;
 		symbol->name = (char*)malloc(strlen(var->name) + 1);
 		strcpy(symbol->name, var->name);
 		
@@ -689,6 +706,7 @@ Symbol* analyseExp(TreeNode *node)
 				newSymbol->kind = symbol->kind;
 				newSymbol->type = symbol->func->returnType;
 				newSymbol->depth = symbol->depth;
+				symbol->id = -1;
 				newSymbol->name = (char*)malloc(strlen(symbol->name) + 1);
 				strcpy(newSymbol->name, symbol->name);
 
@@ -725,6 +743,7 @@ Symbol* analyseExp(TreeNode *node)
 		newSymbol->kind = left->kind;
 		newSymbol->type = type->array.elem;
 		newSymbol->depth = left->depth;
+		newSymbol->id = -1;
 		newSymbol->name = (char*)malloc(strlen(left->name) + 1);
 		strcpy(newSymbol->name, left->name);
 
@@ -752,6 +771,7 @@ Symbol* analyseExp(TreeNode *node)
 			newSymbol->kind = left->kind;
 			newSymbol->type = field->type;
 			newSymbol->depth = left->depth;
+			newSymbol->id = -1;
 			newSymbol->name = (char*)malloc(strlen(left->name) + 1);
 			strcpy(newSymbol->name, left->name);
 			
@@ -777,12 +797,16 @@ Symbol* analyseExp(TreeNode *node)
 		Symbol *symbol = (Symbol*)malloc(sizeof(Symbol));
 		symbol->kind = VAR;
 		symbol->type = TYPE_INT;
+		symbol->id = -1;
+		symbol->isRef = 0;
 		symbol->name = NULL;
 		return symbol;
 	} else {
 		Symbol *symbol = (Symbol*)malloc(sizeof(Symbol));
 		symbol->kind = VAR;
 		symbol->type = TYPE_FLOAT;
+		symbol->id = -1;
+		symbol->isRef = 0;
 		symbol->name = NULL;
 		return symbol;
 	}

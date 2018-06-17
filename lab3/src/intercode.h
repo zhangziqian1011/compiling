@@ -52,7 +52,7 @@ typedef struct Tnode
 void interCodeInsertBefore(InterCodes*, InterCodes*);
 void interCodeDeleteBefore(InterCodes*);
 void interCodeBind(InterCodes*, InterCodes*);
-InterCodes* newInterCodes1(interCodeKind, Operand*)
+InterCodes* newInterCodes1(interCodeKind, Operand*);
 InterCodes* newInterCodes2(interCodeKind, Operand*, Operand*);
 InterCodes* newInterCodes3(interCodeKind, Operand*, Operand*, Operand*);
 int getInterCodesId(InterCodes*);

@@ -16,6 +16,35 @@ void symbolInit()
 		table[i].symbol = NULL;
 	}
 	top = 0;
+
+	Type *TYPE_INT = (Type *)malloc(sizeof(Type));
+	TYPE_INT->kind = BASIC;
+	TYPE_INT->basic = 0;
+
+	Func *readFunc = (Func *)malloc(sizeof(Func));
+	readFunc->returnType = TYPE_INT;
+	readFunc->arg = NULL;
+	readFunc->isDefined = 0;
+	Symbol *read = (Symbol *)malloc(sizeof(Symbol));
+	read->kind = FUNC;
+	read->func = readFunc;
+	read->id = -1;
+	read->name = (char *)malloc(5);
+	strcpy(read->name,"read");
+	symbolTableInsert(read);
+
+	Func *writeFunc = (Func *)malloc(sizeof(Func));
+	writeFunc->returnType = TYPE_INT;
+	writeFunc->arg = (FieldList *)malloc(sizeof(FieldList));
+	writeFunc->arg->type = TYPE_INT;
+	writeFunc->isDefined = 0;
+	Symbol *write = (Symbol *)malloc(sizeof(Symbol));
+	write->kind = FUNC;
+	write->func = writeFunc;
+	write->id = -1;
+	write->name = (char *)malloc(6);
+	strcpy(write->name,"write");
+	symbolTableInsert(write);
 }
 unsigned int hash_pjw(char *name)
 {

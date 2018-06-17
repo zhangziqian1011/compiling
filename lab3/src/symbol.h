@@ -35,7 +35,9 @@ typedef struct Symbol {
 		Func *func;
 	};
 	int depth;
+	int id;
 	char *name;
+	int isRef;
 } Symbol;
 
 typedef struct SymbolNode {
@@ -43,6 +45,8 @@ typedef struct SymbolNode {
 	struct SymbolNode *preHashList, *preStack;
 	struct SymbolNode *nextHashList, *nextStack;
 } SymbolNode;
+
+extern Type *TYPE_INT, *TYPE_FLOAT;
 
 void symbolInit();
 unsigned int hash_pjw(char*);
