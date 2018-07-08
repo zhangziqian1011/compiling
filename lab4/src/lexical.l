@@ -4,11 +4,10 @@
 #include "partree.h"
 #include "syntax.tab.h"
 
+
 extern int isError;
 
-
-
-void getToken(char *name)//处理输入
+void getToken(char *name)
 {
     TreeNode *p = newNode();
     p->name = (char *)malloc(strlen(name) + 1);
@@ -47,8 +46,6 @@ int isHex()
 	return 1;
 }
 
-
-
 %}
 
 %option yylineno
@@ -65,9 +62,7 @@ wrongfloat {base}[eE]([-\+]?{base})?
 id {letter}({letter}|{digit})*
 space [ \t\n\v\f\r]
 
-
 %%
-
 {decNum} {
     getToken("INT");
     yylval->intvalue = atoi(yytext);

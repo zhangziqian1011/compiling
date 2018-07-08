@@ -1,0 +1,14 @@
+int subint(int a, int b)
+{
+	return a-b;
+}
+
+int main()
+{
+	int a,b,c;
+	a=5;
+	b=3;
+	c=subint(a,b);
+	write(c);
+	return 0;
+}

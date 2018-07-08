@@ -1,6 +1,7 @@
 # include <string.h>
 # include "semantic.h"
-#include "translate.h"
+# include "translate.h"
+# include "target.h"
 
 const char *semanticError[] = {"","Undefined variable \"%s\".\n",
 							 "Undefined function \"%s\".\n", 
@@ -96,7 +97,7 @@ void initBasicType() {
 	TYPE_FLOAT->basic = 1;
 }
 
-void analyseProgram(TreeNode *node)
+void analyseProgram(TreeNode *node, FILE *file)
 {
 	if (node == NULL) return;
 	if (strcmp(node->name, "Program") != 0) return;
@@ -105,7 +106,7 @@ void analyseProgram(TreeNode *node)
 	funSymbolList = NULL;
 	argList = NULL;
 	noStructName = 0;
-	analyseExtDefList(extDefList);
+	analyseExtDefList(extDefList, file);
 	for (; funSymbolList != NULL;) {
 		Symbol* symbol = funSymbolList->symbol;
 
@@ -119,21 +120,21 @@ void analyseProgram(TreeNode *node)
 	}
 }
 
-void analyseExtDefList(TreeNode *node)
+void analyseExtDefList(TreeNode *node, FILE *file)
 {
 	if (node == NULL) return;
 	if (strcmp(node->name, "ExtDefList") != 0) return;
 	
 	TreeNode *extDef = node->firstchild;
-	analyseExtDef(extDef);
+	analyseExtDef(extDef, file);
 	
 	if (extDef == NULL) return;
 	TreeNode *extDefList = extDef->nextsibling;
 	if (extDefList != NULL && strcmp(extDefList->name, "ExtDefList") == 0) 
-		analyseExtDefList(extDefList);
+		analyseExtDefList(extDefList, file);
 }
 
-void analyseExtDef(TreeNode *node)
+void analyseExtDef(TreeNode *node, FILE *file)
 {
 	if (node == NULL) return;
 	if (strcmp(node->name, "ExtDef") != 0) return;
@@ -150,8 +151,9 @@ void analyseExtDef(TreeNode *node)
 		if (func == NULL) return;
 		returnType = func->returnType;
 		if (isDefined) {
-			printf("FUNCTION %s :\n",(second->firstchild)->morpheme);
-			analyseCompSt(third, func);
+			//printf("FUNCTION %s :\n",(second->firstchild)->morpheme);
+			fprintf(file,"\n%s:\n",(second->firstchild)->morpheme);
+			analyseCompSt(third, func, file);
 			func->isDefined = 1;
 		}
 	}
@@ -387,7 +389,7 @@ FieldList* analyseParamDec(TreeNode *node)
 	return analyseVarDec(varDec, type);
 }
 
-void analyseCompSt(TreeNode *node, Func *func)
+void analyseCompSt(TreeNode *node, Func *func, FILE *file)
 {
 	if (node == NULL) return;
 	if (strcmp(node->name, "CompSt") != 0) return;
@@ -422,7 +424,9 @@ void analyseCompSt(TreeNode *node, Func *func)
 	
 	if(func != NULL) {
 		InterCodes *interCodes = translateCompst(node, func);
-		interCodesPrint(interCodes);
+		//interCodesPrint(interCodes);
+		interCodes2Target(interCodes, file);
+		//interCodesPrint(interCodes);
 	}
 
 	stackPop();
@@ -449,7 +453,7 @@ void analyseStmt(TreeNode *node)
 	TreeNode *first = node->firstchild;
 	if (first != NULL && strcmp(first->name, "Exp") == 0) analyseExp(first);
 	else if (first != NULL && strcmp(first->name, "CompSt") == 0) {
-		analyseCompSt(first, NULL);
+		analyseCompSt(first, NULL, NULL);
 	} else if (first != NULL && strcmp(first->name, "RETURN") == 0) {
 		TreeNode *exp = first->nextsibling;
 		if (exp != NULL && strcmp(exp->name, "Exp") == 0) {

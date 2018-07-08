@@ -182,7 +182,7 @@ Operand* newLabelOperand()
 {
 	Operand *op = (Operand*)malloc(sizeof(Operand));
 	op->kind = LABEL;
-	op->id = varOperandId();
+	op->id = labelOperandId();
 	return op;
 }
 
